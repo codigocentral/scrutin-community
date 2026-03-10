@@ -1,28 +1,19 @@
 # Scrutin Community
 
-> **Static code analysis CLI — 900+ rules, 10+ languages, no account required.**
+**Static code analysis. 900+ rules. 10+ languages. No account required.**
 
-Scrutin Community is the open-source static analysis engine powering [Scrutin](https://scrutin.dev). It finds real bugs, security vulnerabilities, and code smells in your code — **locally, instantly, for free**.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/codigocentral/scrutin-community/main/install.sh | bash
-scrutin-community local .
-```
-
----
+Scrutin Community is the free, open-source edition of [Scrutin](https://scrutin.dev) — an AI-powered code review platform. It runs entirely on your machine with no backend connection needed.
 
 ## Features
 
-- **900+ rules** — SonarQube rule set + OWASP/CWE security rules
-- **10+ languages** — C#, TypeScript/JavaScript, Python, Go, Java, Rust, PHP, Kotlin, Ruby, C++
-- **IaC scanning** — Dockerfile, Kubernetes, Terraform
-- **No account needed** — runs entirely offline
-- **No AI required** — pure static analysis
-- **Open source** — MIT license
+- 900+ static analysis rules (based on SonarQube rule database)
+- 10+ languages: JavaScript, TypeScript, Python, Java, C#, Go, Rust, PHP, Ruby, Kotlin, Swift
+- OWASP Top 10 and CWE security checks
+- Infrastructure as Code (IaC) scanning
+- No account, no AI, no internet required
+- Single binary — works on Linux, macOS, and Windows
 
----
-
-## Install
+## Quick Install
 
 ### Linux / macOS
 
@@ -32,69 +23,75 @@ curl -fsSL https://raw.githubusercontent.com/codigocentral/scrutin-community/mai
 
 ### Windows (PowerShell)
 
-Download from [Releases](https://github.com/codigocentral/scrutin-community/releases/latest) and add to your PATH.
+Download the latest release from the [Releases page](https://github.com/codigocentral/scrutin-community/releases).
 
-### Manual
+### Manual Download
 
-Download the binary for your platform from the [Releases page](https://github.com/codigocentral/scrutin-community/releases/latest):
-
-| Platform | Binary |
-|----------|--------|
-| Linux x86_64 | `scrutin-community-linux-amd64` |
-| Linux arm64 | `scrutin-community-linux-arm64` |
-| macOS x86_64 | `scrutin-community-darwin-amd64` |
-| macOS arm64 (M1/M2/M3) | `scrutin-community-darwin-arm64` |
-| Windows x86_64 | `scrutin-community-windows-amd64.exe` |
-
----
+Pre-built binaries for all platforms are available on the [Releases page](https://github.com/codigocentral/scrutin-community/releases).
 
 ## Usage
 
 ```bash
-# Analyze current directory
+# Analyze the current directory
 scrutin-community local .
 
-# Analyze specific path
+# Analyze a specific path
 scrutin-community local /path/to/project
 
-# JSON output (for CI/CD)
-scrutin-community local . --json
-
-# Show all available rules
-scrutin-community rules
-
-# Filter rules by language
-scrutin-community rules --language python
-
-# System check
+# Check system requirements
 scrutin-community doctor
+
+# List available rules
+scrutin-community rules status
+
+# List rules for a specific language
+scrutin-community rules list rust
 ```
 
----
+## Available Commands
 
-## Community vs Scrutin Pro
+| Command | Description |
+|---------|-------------|
+| `local <path>` | Run static analysis on a local directory |
+| `doctor` | Check system requirements and diagnostics |
+| `rules status` | Show embedded rules status |
+| `rules list <lang>` | List analysis rules for a language |
+| `rules clean` | Clean rules cache |
+| `validate` | Validate project configuration (`.scrutin.yml`) |
+| `version` | Show version information |
 
-| Feature | Community | Pro | Business |
-|---------|-----------|-----|----------|
-| Static analysis (900+ rules) | ✅ | ✅ | ✅ |
-| 10+ languages | ✅ | ✅ | ✅ |
-| OWASP/CWE security rules | ✅ | ✅ | ✅ |
-| IaC scanning | ✅ | ✅ | ✅ |
-| AI-powered analysis | ❌ | ✅ | ✅ |
-| Automatic PR review | ❌ | ✅ | ✅ |
-| GitHub / GitLab / Azure DevOps | ❌ | ✅ | ✅ |
-| Dashboard & reports | ❌ | ✅ | ✅ |
-| Self-hosted agents | ❌ | ❌ | ✅ |
-| SSO / SAML | ❌ | ❌ | ✅ |
-| SLA guarantee | ❌ | ❌ | ✅ |
-| **Price** | **Free** | **$19/user/mo** | **$39/user/mo** |
+## Configuration
 
-**[→ Start free at scrutin.dev](https://scrutin.dev)**
+Create a `.scrutin.yml` (or `.scrutin.toml`, `.scrutin.json`) in your project root to customize analysis:
 
----
+```yaml
+agent:
+  max_workers: 4
+  log_level: info
+
+analysis:
+  exclude:
+    - "vendor/**"
+    - "node_modules/**"
+    - "**/*.min.js"
+```
+
+## Want More?
+
+Scrutin Community provides powerful static analysis. For AI-powered analysis, automatic PR reviews, and team features:
+
+| Feature | Community (Free) | Pro ($19/user/mo) | Business ($39/user/mo) |
+|---------|:-:|:-:|:-:|
+| 900+ static rules | Yes | Yes | Yes |
+| AI-powered analysis | - | Yes | Yes |
+| Automatic PR review | - | Yes | Yes |
+| Custom rules | - | Yes | Yes |
+| Quality gates | - | Yes | Yes |
+| SSO/SAML | - | - | Yes |
+| Azure DevOps | - | - | Yes |
+
+[Get started at scrutin.dev](https://scrutin.dev)
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
-
-Built by [Código Central](https://github.com/codigocentral) · [scrutin.dev](https://scrutin.dev)
+MIT
