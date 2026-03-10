@@ -6,7 +6,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/codigocentral/scrutin-community/main/install.sh | bash
 #
 # Env vars (optional):
-#   SCRUTIN_COMMUNITY_VERSION   version to install (e.g. v0.1.5). Default: latest
+#   SCRUTIN_COMMUNITY_VERSION   version to install (e.g. community-v0.1.5). Default: latest
 #   SCRUTIN_INSTALL_DIR         install directory. Default: /usr/local/bin or ~/.local/bin
 #
 
@@ -36,7 +36,7 @@ detect_platform() {
         arm64|aarch64) arch="arm64" ;;
         *)             err "Unsupported arch: $(uname -m)" ;;
     esac
-    echo "${os}_${arch}"
+    echo "${os}-${arch}"
 }
 
 step "Scrutin Community Installer"
