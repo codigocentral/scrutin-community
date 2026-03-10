@@ -1,99 +1,195 @@
-#!/usr/bin/env bash
-#
-# Scrutin Community — Installer (Linux / macOS)
-#
-# Usage:
-#   curl -fsSL https://raw.githubusercontent.com/codigocentral/scrutin-community/main/install.sh | bash
-#
-# Env vars (optional):
-#   SCRUTIN_COMMUNITY_VERSION   version to install (e.g. community-v0.1.5). Default: latest
-#   SCRUTIN_INSTALL_DIR         install directory. Default: /usr/local/bin or ~/.local/bin
-#
-
+#!/bin/bash
 set -euo pipefail
 
+# Scrutin Community — Install Script
+# Usage: curl -fsSL https://raw.githubusercontent.com/codigocentral/scrutin-community/main/install.sh | bash
+#
+# Environment variables:
+#   SCRUTIN_VERSION      - Specific version to install (default: latest)
+#   SCRUTIN_INSTALL_DIR  - Custom install directory
+
+BINARY_NAME="scrutin-community"
 REPO="codigocentral/scrutin-community"
-BINARY="scrutin-community"
+GITHUB_API="https://api.github.com"
 
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-BLUE='\033[0;34m'; BOLD='\033[1m'; NC='\033[0m'
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+DIM='\033[2m'
+BOLD='\033[1m'
+NC='\033[0m'
 
-info()  { echo -e "${BLUE}[INFO]${NC}  $1"; }
-ok()    { echo -e "${GREEN}[ OK ]${NC}  $1"; }
-warn()  { echo -e "${YELLOW}[WARN]${NC}  $1"; }
-err()   { echo -e "${RED}[ERR ]${NC}  $1" >&2; exit 1; }
-step()  { echo -e "\n${BOLD}▶ $1${NC}"; }
+info() { echo -e "${CYAN}${BOLD}info${NC} $1"; }
+success() { echo -e "${GREEN}${BOLD}  ok${NC} $1"; }
+error() { echo -e "${RED}${BOLD}erro${NC} $1" >&2; }
+dim() { echo -e "${DIM}$1${NC}"; }
 
 detect_platform() {
     local os arch
-    case "$(uname -s)" in
-        Linux)  os="linux"  ;;
+
+    os="$(uname -s)"
+    arch="$(uname -m)"
+
+    case "$os" in
+        Linux)  os="linux" ;;
         Darwin) os="darwin" ;;
-        *)      err "Unsupported OS: $(uname -s). Download manually from https://github.com/${REPO}/releases" ;;
+        MINGW*|MSYS*|CYGWIN*) os="windows" ;;
+        *) error "OS nao suportado: $os"; exit 1 ;;
     esac
-    case "$(uname -m)" in
-        x86_64|amd64)  arch="amd64" ;;
-        arm64|aarch64) arch="arm64" ;;
-        *)             err "Unsupported arch: $(uname -m)" ;;
+
+    case "$arch" in
+        x86_64|amd64)   arch="amd64" ;;
+        aarch64|arm64)   arch="arm64" ;;
+        *) error "Arquitetura nao suportada: $arch"; exit 1 ;;
     esac
-    echo "${os}-${arch}"
+
+    PLATFORM="${os}"
+    ARCH="${arch}"
+
+    # Binary naming convention from CI
+    case "${PLATFORM}_${ARCH}" in
+        linux_amd64)  ASSET_NAME="${BINARY_NAME}-linux-amd64" ;;
+        linux_arm64)  ASSET_NAME="${BINARY_NAME}-linux-arm64" ;;
+        darwin_amd64) ASSET_NAME="${BINARY_NAME}-darwin-amd64" ;;
+        darwin_arm64) ASSET_NAME="${BINARY_NAME}-darwin-arm64" ;;
+        windows_amd64) ASSET_NAME="${BINARY_NAME}-windows-amd64.exe" ;;
+        *) error "Plataforma nao suportada: ${PLATFORM}_${ARCH}"; exit 1 ;;
+    esac
 }
 
-step "Scrutin Community Installer"
+get_latest_version() {
+    local version
+    version=$(curl -fsSL "${GITHUB_API}/repos/${REPO}/releases/latest" 2>/dev/null \
+        | grep '"tag_name"' \
+        | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
 
-PLATFORM=$(detect_platform)
-info "Platform: ${PLATFORM}"
+    if [ -z "$version" ]; then
+        error "Nao foi possivel obter a versao mais recente do GitHub."
+        error "Verifique sua conexao ou defina SCRUTIN_VERSION manualmente."
+        exit 1
+    fi
+    echo "$version"
+}
 
-step "Fetching latest version"
-if [ -n "${SCRUTIN_COMMUNITY_VERSION:-}" ]; then
-    VERSION="${SCRUTIN_COMMUNITY_VERSION}"
-else
-    VERSION=$(curl -sf "https://api.github.com/repos/${REPO}/releases/latest" \
-        | grep '"tag_name"' | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\(.*\)".*/\1/' | head -1)
-    [ -z "$VERSION" ] && err "Could not fetch latest version. Try setting SCRUTIN_COMMUNITY_VERSION."
-fi
-info "Version: ${VERSION}"
+download_and_install() {
+    local version="$1"
+    local install_dir="$2"
+    local tmp_dir
 
-DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY}-${PLATFORM}"
+    tmp_dir=$(mktemp -d)
+    trap 'rm -rf "$tmp_dir"' EXIT
 
-step "Downloading ${BINARY} ${VERSION} for ${PLATFORM}"
-info "URL: ${DOWNLOAD_URL}"
+    local download_url="https://github.com/${REPO}/releases/download/${version}/${ASSET_NAME}"
+    local checksum_url="${download_url}.sha256"
 
-TMP=$(mktemp)
-trap "rm -f $TMP" EXIT
+    info "Baixando ${BINARY_NAME} ${version} para ${PLATFORM}/${ARCH}..."
+    dim "  ${download_url}"
 
-curl -fL --progress-bar -o "$TMP" "$DOWNLOAD_URL" \
-    || err "Download failed. Check https://github.com/${REPO}/releases for available binaries."
+    if ! curl -fsSL -o "${tmp_dir}/${ASSET_NAME}" "$download_url"; then
+        error "Falha ao baixar o binario."
+        error "Verifique se a versao ${version} existe para ${PLATFORM}/${ARCH}."
+        exit 1
+    fi
 
-chmod +x "$TMP"
+    # Verify checksum if available
+    if curl -fsSL -o "${tmp_dir}/${ASSET_NAME}.sha256" "$checksum_url" 2>/dev/null; then
+        info "Verificando checksum SHA256..."
+        cd "$tmp_dir"
+        if command -v sha256sum &>/dev/null; then
+            sha256sum -c "${ASSET_NAME}.sha256" || {
+                error "Checksum SHA256 nao confere!"
+                exit 1
+            }
+        elif command -v shasum &>/dev/null; then
+            shasum -a 256 -c "${ASSET_NAME}.sha256" || {
+                error "Checksum SHA256 nao confere!"
+                exit 1
+            }
+        else
+            dim "  (sha256sum nao disponivel, pulando verificacao)"
+        fi
+        cd - >/dev/null
+        success "Checksum verificado"
+    else
+        dim "  (checksum nao disponivel para esta versao, pulando verificacao)"
+    fi
 
-step "Installing"
+    # Determine install directory
+    if [ -z "$install_dir" ]; then
+        if [ "$(id -u)" -eq 0 ]; then
+            install_dir="/usr/local/bin"
+        else
+            install_dir="${HOME}/.local/bin"
+        fi
+    fi
 
-if [ -n "${SCRUTIN_INSTALL_DIR:-}" ]; then
-    INSTALL_DIR="${SCRUTIN_INSTALL_DIR}"
-elif [ -w /usr/local/bin ]; then
-    INSTALL_DIR=/usr/local/bin
-else
-    INSTALL_DIR="$HOME/.local/bin"
-    mkdir -p "$INSTALL_DIR"
-fi
+    mkdir -p "$install_dir"
 
-mv "$TMP" "${INSTALL_DIR}/${BINARY}"
+    local target_name="$BINARY_NAME"
+    if [ "$PLATFORM" = "windows" ]; then
+        target_name="${BINARY_NAME}.exe"
+    fi
 
-ok "${BINARY} installed to ${INSTALL_DIR}/${BINARY}"
+    info "Instalando em ${install_dir}/${target_name}..."
+    cp "${tmp_dir}/${ASSET_NAME}" "${install_dir}/${target_name}"
+    chmod +x "${install_dir}/${target_name}"
 
-# Check PATH
-if ! command -v "$BINARY" &>/dev/null; then
-    warn "Add ${INSTALL_DIR} to your PATH:"
-    warn "  export PATH=\"\$PATH:${INSTALL_DIR}\""
-fi
+    success "Instalado com sucesso!"
 
-echo ""
-echo -e "${BOLD}Try it:${NC}"
-echo "  ${BINARY} local ."
-echo "  ${BINARY} rules"
-echo "  ${BINARY} --help"
-echo ""
-echo -e "${BOLD}Want AI-powered PR review (GitHub, GitLab, Azure DevOps)?${NC}"
-echo "  → https://scrutin.dev  (from \$19/user/month)"
-echo ""
+    # Check if install dir is in PATH
+    if ! echo "$PATH" | tr ':' '\n' | grep -qx "$install_dir"; then
+        echo ""
+        echo -e "${CYAN}${BOLD}Adicione ao seu PATH:${NC}"
+        echo ""
+        if [ -f "${HOME}/.zshrc" ]; then
+            echo "  echo 'export PATH=\"${install_dir}:\$PATH\"' >> ~/.zshrc && source ~/.zshrc"
+        elif [ -f "${HOME}/.bashrc" ]; then
+            echo "  echo 'export PATH=\"${install_dir}:\$PATH\"' >> ~/.bashrc && source ~/.bashrc"
+        else
+            echo "  export PATH=\"${install_dir}:\$PATH\""
+        fi
+        echo ""
+    fi
+}
+
+print_next_steps() {
+    echo ""
+    echo -e "${GREEN}${BOLD}Pronto!${NC} Scrutin Community instalado com sucesso."
+    echo ""
+    echo -e "${BOLD}Proximo passo:${NC}"
+    echo ""
+    echo "  ${BINARY_NAME} local .          # Analisa o diretorio atual"
+    echo "  ${BINARY_NAME} doctor           # Verifica o sistema"
+    echo "  ${BINARY_NAME} rules status     # Mostra regras disponiveis"
+    echo ""
+    echo -e "${DIM}900+ regras. 10+ linguagens. Sem conta. Sem IA. Open source.${NC}"
+    echo ""
+    echo -e "${DIM}Quer analise com IA + review automatico de PRs?${NC}"
+    echo -e "${DIM}  -> https://scrutin.dev  (a partir de \$19/user/mes)${NC}"
+    echo ""
+}
+
+main() {
+    echo ""
+    echo -e "${GREEN}${BOLD}Scrutin Community — Instalador${NC}"
+    echo ""
+
+    detect_platform
+
+    local version="${SCRUTIN_VERSION:-}"
+    if [ -z "$version" ]; then
+        info "Buscando versao mais recente..."
+        version=$(get_latest_version)
+        success "Versao: ${version}"
+    else
+        info "Usando versao especificada: ${version}"
+    fi
+
+    local install_dir="${SCRUTIN_INSTALL_DIR:-}"
+
+    download_and_install "$version" "$install_dir"
+    print_next_steps
+}
+
+main "$@"
