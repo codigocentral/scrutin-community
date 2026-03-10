@@ -1,42 +1,50 @@
 # Scrutin Community
 
-> **Static code analysis CLI for developers — no AI required, no account needed.**
+> **Static code analysis CLI — 900+ rules, 10+ languages, no account required.**
 
-Scrutin Community is the open-source static analysis engine that powers [Scrutin](https://scrutin.dev). It finds real bugs, security vulnerabilities, and code smells in your code using 900+ rules across all major languages — locally, instantly, for free.
+Scrutin Community is the open-source static analysis engine powering [Scrutin](https://scrutin.dev). It finds real bugs, security vulnerabilities, and code smells in your code — **locally, instantly, for free**.
 
 ```bash
-curl -fsSL https://get.scrutin.dev/agent | bash
-scrutin analyze .
+curl -fsSL https://raw.githubusercontent.com/codigocentral/scrutin-community/main/install.sh | bash
+scrutin-community local .
 ```
 
 ---
 
-## What it finds
+## Features
 
-| Category | Examples |
-|----------|----------|
-| **Security** | SQL injection, XSS, hardcoded secrets, path traversal |
-| **Bugs** | Null dereference, unchecked errors, race conditions |
-| **Code Smells** | Cognitive complexity, duplicated code, dead code |
-| **OWASP Top 10** | Full coverage mapped to CWE |
-| **Dependencies** | Known vulnerable packages (SCA) |
-
-Supports: **TypeScript · JavaScript · Python · Java · C# · Go · Rust · PHP · Ruby · Kotlin · Swift · C/C++ · and more**
+- **900+ rules** — SonarQube rule set + OWASP/CWE security rules
+- **10+ languages** — C#, TypeScript/JavaScript, Python, Go, Java, Rust, PHP, Kotlin, Ruby, C++
+- **IaC scanning** — Dockerfile, Kubernetes, Terraform
+- **No account needed** — runs entirely offline
+- **No AI required** — pure static analysis
+- **Open source** — MIT license
 
 ---
 
 ## Install
 
+### Linux / macOS
+
 ```bash
-# Linux / macOS
-curl -fsSL https://get.scrutin.dev/agent | bash
-
-# Windows (PowerShell)
-iwr -useb https://get.scrutin.dev/agent.ps1 | iex
-
-# Or download directly
-# https://github.com/codigocentral/scrutin-community/releases
+curl -fsSL https://raw.githubusercontent.com/codigocentral/scrutin-community/main/install.sh | bash
 ```
+
+### Windows (PowerShell)
+
+Download from [Releases](https://github.com/codigocentral/scrutin-community/releases/latest) and add to your PATH.
+
+### Manual
+
+Download the binary for your platform from the [Releases page](https://github.com/codigocentral/scrutin-community/releases/latest):
+
+| Platform | Binary |
+|----------|--------|
+| Linux x86_64 | `scrutin-community-linux-amd64` |
+| Linux arm64 | `scrutin-community-linux-arm64` |
+| macOS x86_64 | `scrutin-community-darwin-amd64` |
+| macOS arm64 (M1/M2/M3) | `scrutin-community-darwin-arm64` |
+| Windows x86_64 | `scrutin-community-windows-amd64.exe` |
 
 ---
 
@@ -44,116 +52,49 @@ iwr -useb https://get.scrutin.dev/agent.ps1 | iex
 
 ```bash
 # Analyze current directory
-scrutin analyze .
+scrutin-community local .
 
-# Analyze a specific path
-scrutin analyze ./src
+# Analyze specific path
+scrutin-community local /path/to/project
+
+# JSON output (for CI/CD)
+scrutin-community local . --json
 
 # Show all available rules
-scrutin rules
+scrutin-community rules
 
-# Output as JSON (CI-friendly)
-scrutin analyze . --output json
+# Filter rules by language
+scrutin-community rules --language python
 
-# Save report to file
-scrutin analyze . --output-file report.json
-
-# Health check
-scrutin doctor
+# System check
+scrutin-community doctor
 ```
 
 ---
 
-## Example output
+## Community vs Scrutin Pro
 
-```
-scrutin analyze .
+| Feature | Community | Pro | Business |
+|---------|-----------|-----|----------|
+| Static analysis (900+ rules) | ✅ | ✅ | ✅ |
+| 10+ languages | ✅ | ✅ | ✅ |
+| OWASP/CWE security rules | ✅ | ✅ | ✅ |
+| IaC scanning | ✅ | ✅ | ✅ |
+| AI-powered analysis | ❌ | ✅ | ✅ |
+| Automatic PR review | ❌ | ✅ | ✅ |
+| GitHub / GitLab / Azure DevOps | ❌ | ✅ | ✅ |
+| Dashboard & reports | ❌ | ✅ | ✅ |
+| Self-hosted agents | ❌ | ❌ | ✅ |
+| SSO / SAML | ❌ | ❌ | ✅ |
+| SLA guarantee | ❌ | ❌ | ✅ |
+| **Price** | **Free** | **$19/user/mo** | **$39/user/mo** |
 
-✓ Analyzed 147 files in 1.2s
-
-CRITICAL  src/auth/login.ts:42
-  SQL injection — user input concatenated directly into query
-  CWE-89 · OWASP A03:2021
-
-HIGH      src/api/upload.ts:118
-  Path traversal — filename not sanitized before file.write()
-  CWE-22 · OWASP A01:2021
-
-MEDIUM    src/utils/cache.ts:67
-  Potential null dereference — result used without null check
-
-─────────────────────────────────────────
-  3 issues found  (1 critical · 1 high · 1 medium)
-
-💡 Want AI-powered analysis + automatic PR review?
-   → https://scrutin.dev  (free to start)
-```
-
----
-
-## What's included
-
-| Feature | Community | [Scrutin Agent](https://scrutin.dev) |
-|---------|:---------:|:--------------------:|
-| Static analysis (900+ rules) | ✅ | ✅ |
-| All languages | ✅ | ✅ |
-| OWASP / CWE mapping | ✅ | ✅ |
-| Dependency scanning (SCA) | ✅ | ✅ |
-| JSON / CI output | ✅ | ✅ |
-| **AI-powered review** | ❌ | ✅ |
-| **Automatic PR review** | ❌ | ✅ |
-| **GitHub / GitLab / Azure integration** | ❌ | ✅ |
-| **Team dashboard** | ❌ | ✅ |
-| **BYOK (Bring Your Own Key)** | ❌ | ✅ |
-
----
-
-## CI/CD integration
-
-**GitHub Actions:**
-```yaml
-- name: Scrutin Analysis
-  run: |
-    curl -fsSL https://get.scrutin.dev/agent | bash
-    scrutin analyze . --output json --output-file scrutin-report.json
-```
-
-**GitLab CI:**
-```yaml
-scrutin:
-  script:
-    - curl -fsSL https://get.scrutin.dev/agent | bash
-    - scrutin analyze . --output json
-```
-
----
-
-## Rules
-
-Scrutin Community ships with **900+ rules** based on:
-
-- [SonarSource rules](https://rules.sonarsource.com/) (adapted)
-- OWASP Top 10 (2021)
-- CWE Top 25
-- Language-specific best practices
-
-Rules are embedded in the binary — no network required after install.
+**[→ Start free at scrutin.dev](https://scrutin.dev)**
 
 ---
 
 ## License
 
-Apache 2.0 — see [LICENSE](LICENSE)
+MIT — see [LICENSE](LICENSE)
 
----
-
-## Upgrade to Scrutin Agent
-
-Scrutin Community runs locally. **[Scrutin Agent](https://scrutin.dev)** connects to your Git provider and reviews every PR automatically — with AI, as part of your team's workflow.
-
-- Automatic review on every PR — no manual runs
-- AI that finds what static analysis misses
-- Team dashboard with trends and metrics
-- GitHub, GitLab, Azure DevOps native integration
-
-**[Get started free → scrutin.dev](https://scrutin.dev)**
+Built by [Código Central](https://github.com/codigocentral) · [scrutin.dev](https://scrutin.dev)
